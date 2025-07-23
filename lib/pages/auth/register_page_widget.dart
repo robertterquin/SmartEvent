@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '/flutter_flow/flutter_flow_util.dart';
+import '../../providers/auth_provider.dart';
 
 class RegisterPageWidget extends StatefulWidget {
   const RegisterPageWidget({super.key});
@@ -20,6 +22,7 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  String _selectedRole = 'client'; // Default role
 
   @override
   void dispose() {
@@ -28,6 +31,63 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Email is required';
+    }
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+      return 'Please enter a valid email';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Password is required';
+    }
+    if (value.length < 6) {
+      return 'Password must be at least 6 characters';
+    }
+    return null;
+  }
+
+  String? _validateName(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Name is required';
+    }
+    return null;
+  }
+
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    final success = await authProvider.register(
+      _emailController.text.trim(),
+      _passwordController.text,
+      _nameController.text.trim(),
+      _selectedRole,
+    );
+
+    if (success) {
+      if (mounted) {
+        context.go('/');
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Registration failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -114,11 +174,11 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                   // Illustration and title
                                   Row(
                                     children: [
-                                      Expanded(
+                                      const Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
+                                            Text(
                                               'Here\'s\nyour first\nstep with\nus!',
                                               style: TextStyle(
                                                 fontSize: 28,
@@ -166,8 +226,9 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _nameController,
+                                        validator: _validateName,
                                         decoration: InputDecoration(
-                                          hintText: 'kapil',
+                                          hintText: 'Enter your name',
                                           hintStyle: TextStyle(
                                             color: Colors.grey[400],
                                             fontSize: 16,
@@ -210,6 +271,8 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _emailController,
+                                        validator: _validateEmail,
+                                        keyboardType: TextInputType.emailAddress,
                                         decoration: InputDecoration(
                                           hintText: 'example@email.com',
                                           hintStyle: TextStyle(
@@ -239,12 +302,12 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                   
                                   const SizedBox(height: 24),
                                   
-                                  // Phone field
+                                  // Role selection
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const Text(
-                                        'Mobile',
+                                        'Role',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Color(0xFF1DD1A1),
@@ -252,14 +315,9 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      TextFormField(
-                                        controller: _phoneController,
+                                      DropdownButtonFormField<String>(
+                                        value: _selectedRole,
                                         decoration: InputDecoration(
-                                          hintText: '8129****',
-                                          hintStyle: TextStyle(
-                                            color: Colors.grey[400],
-                                            fontSize: 16,
-                                          ),
                                           border: UnderlineInputBorder(
                                             borderSide: BorderSide(
                                               color: Colors.grey[300]!,
@@ -273,10 +331,15 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                           ),
                                           contentPadding: const EdgeInsets.symmetric(vertical: 12),
                                         ),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Color(0xFF2D3748),
-                                        ),
+                                        items: const [
+                                          DropdownMenuItem(value: 'client', child: Text('Client')),
+                                          DropdownMenuItem(value: 'organizer', child: Text('Event Organizer')),
+                                        ],
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _selectedRole = value!;
+                                          });
+                                        },
                                       ),
                                     ],
                                   ),
@@ -298,6 +361,7 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _passwordController,
+                                        validator: _validatePassword,
                                         obscureText: !_isPasswordVisible,
                                         decoration: InputDecoration(
                                           hintText: '••••••••••••••',
@@ -342,30 +406,40 @@ class _RegisterPageWidgetState extends State<RegisterPageWidget> {
                                   const SizedBox(height: 32),
                                   
                                   // Register button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        // Navigate to home page
-                                        context.go('/');
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF1DD1A1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(25),
+                                  Consumer<AuthProvider>(
+                                    builder: (context, authProvider, child) {
+                                      return SizedBox(
+                                        width: double.infinity,
+                                        height: 50,
+                                        child: ElevatedButton(
+                                          onPressed: authProvider.isLoading ? null : _handleRegister,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF1DD1A1),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(25),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          child: authProvider.isLoading
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 2,
+                                                  ),
+                                                )
+                                              : const Text(
+                                                  'Register',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                         ),
-                                        elevation: 0,
-                                      ),
-                                      child: const Text(
-                                        'Register',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                   
                                   const SizedBox(height: 16),

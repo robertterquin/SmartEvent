@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
+import 'package:provider/provider.dart';
 
 // Import all page widgets
 import 'pages/home/home_page_widget.dart';
@@ -12,9 +15,14 @@ import 'pages/events/book_event_widget.dart';
 import 'pages/chat/chat_organizers_widget.dart';
 import 'pages/notifications/notifications_widget.dart';
 import 'pages/history/event_history_widget.dart';
+import 'providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseConfig.initialize();
+  
   GoRouter.optionURLReflectsImperativeAPIs = true;
   usePathUrlStrategy();
   
@@ -64,22 +72,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Smart Event',
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
-      supportedLocales: const [Locale('en', '')],
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+      child: MaterialApp.router(
+        title: 'Smart Event',
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en', '')],
+        theme: ThemeData(
+          primarySwatch: Colors.teal,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        darkTheme: ThemeData.dark(),
+        themeMode: ThemeMode.system,
+        routerConfig: _router,
       ),
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.system,
-      routerConfig: _router,
     );
   }
 }
+ 

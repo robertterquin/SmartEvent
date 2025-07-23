@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '/flutter_flow/flutter_flow_util.dart';
+import '../../providers/auth_provider.dart';
 
 class LoginPageWidget extends StatefulWidget {
   const LoginPageWidget({super.key});
@@ -24,6 +26,29 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _login() async {
+    if (_formKey.currentState!.validate()) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      final success = await authProvider.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      
+      if (success && mounted) {
+        context.go('/');
+      } else if (mounted) {
+        // Error handling is done through the provider's errorMessage
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Login failed'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -82,8 +107,8 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                 ),
                 
                 // App title
-                Padding(
-                  padding: const EdgeInsets.only(top: 40, bottom: 20),
+                const Padding(
+                  padding: EdgeInsets.only(top: 40, bottom: 20),
                   child: Text(
                     'Smart Event',
                     style: TextStyle(
@@ -124,11 +149,11 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                                   // Illustration and title
                                   Row(
                                     children: [
-                                      Expanded(
+                                      const Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
+                                            Text(
                                               'Already\nhave an\nAccount?',
                                               style: TextStyle(
                                                 fontSize: 28,
@@ -176,6 +201,15 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                                       const SizedBox(height: 8),
                                       TextFormField(
                                         controller: _emailController,
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your email';
+                                          }
+                                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                                            return 'Please enter a valid email';
+                                          }
+                                          return null;
+                                        },
                                         decoration: InputDecoration(
                                           hintText: 'example@email.com',
                                           hintStyle: TextStyle(
@@ -221,6 +255,15 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                                       TextFormField(
                                         controller: _passwordController,
                                         obscureText: !_isPasswordVisible,
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Please enter your password';
+                                          }
+                                          if (value.length < 6) {
+                                            return 'Password must be at least 6 characters';
+                                          }
+                                          return null;
+                                        },
                                         decoration: InputDecoration(
                                           hintText: '••••••••••••••',
                                           hintStyle: TextStyle(
@@ -264,30 +307,35 @@ class _LoginPageWidgetState extends State<LoginPageWidget> {
                                   const SizedBox(height: 32),
                                   
                                   // Login button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 50,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        // Navigate to home page
-                                        context.go('/');
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF1DD1A1),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(25),
+                                  Consumer<AuthProvider>(
+                                    builder: (context, authProvider, child) {
+                                      return SizedBox(
+                                        width: double.infinity,
+                                        height: 50,
+                                        child: ElevatedButton(
+                                          onPressed: authProvider.isLoading ? null : _login,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF1DD1A1),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(25),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          child: authProvider.isLoading
+                                              ? const CircularProgressIndicator(
+                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                )
+                                              : const Text(
+                                                  'Login',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
                                         ),
-                                        elevation: 0,
-                                      ),
-                                      child: const Text(
-                                        'Login',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
+                                      );
+                                    },
                                   ),
                                   
                                   const SizedBox(height: 16),
